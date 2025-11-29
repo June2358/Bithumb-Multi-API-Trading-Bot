@@ -1,4 +1,9 @@
 # Secrets
 api_keys.json
+
+# Python
 __pycache__/
 *.pyc
+
+# Pixi
+.pixi/
