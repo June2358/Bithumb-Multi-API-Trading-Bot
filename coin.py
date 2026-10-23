@@ -3,9 +3,9 @@ import time
 import json
 import math
 import threading
-import datetime
+import logging
 import random
-import traceback
+import sys
 
 # 설정 변수
 TARGET_COIN = "ETH"        # 거래할 코인
@@ -15,11 +15,6 @@ MAX_BUY_KRW = 20000        # 최대 매수 금액 (원)
 # 대기 시간 설정 (초 단위)
 MIN_WAIT_SEC = 1800        # 30분
 MAX_WAIT_SEC = 7200        # 2시간
-
-def log(name, msg):
-    """로그 출력 함수"""
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{now}] [{name}] {msg}")
 
 def load_api_keys(filename="api_keys.json"):
     """JSON 파일에서 API 키 로드"""
@@ -41,13 +36,13 @@ def load_api_keys(filename="api_keys.json"):
 
 def bot_loop(api_key_config):
     """API Key별 메인 루프"""
-    name = api_key_config["name"]
+    logger = logging.getLogger(api_key_config["name"])
     connect_key = api_key_config["connect_key"]
     secret_key = api_key_config["secret_key"]
     bithumb = pybithumb.Bithumb(connect_key, secret_key)
     coin = TARGET_COIN
 
-    log(name, "프로세스 시작")
+    logger.info("프로세스 시작")
 
     while True:
         try:
@@ -55,7 +50,7 @@ def bot_loop(api_key_config):
             random_buy_krw = random.randint(MIN_BUY_KRW, MAX_BUY_KRW)
             random_buy_krw = random_buy_krw // 100 * 100  # 100원 단위 절삭
 
-            log(name, f"--- 사이클 시작 (목표 매수금액: {random_buy_krw:,}원) ---")
+            logger.info(f"--- 사이클 시작 (목표 매수금액: {random_buy_krw:,}원) ---")
 
             # 2. 매수 로직
             # 잔액 조회
@@ -65,7 +60,7 @@ def bot_loop(api_key_config):
                 raise ValueError("사용 가능한 원화 잔액을 확인할 수 없습니다.")
 
             if available_krw < random_buy_krw:
-                log(name, f"잔액 부족으로 대기 (보유: {available_krw:,.0f}원)")
+                logger.info(f"잔액 부족으로 대기 (보유: {available_krw:,.0f}원)")
                 time.sleep(300)
                 continue
 
@@ -77,15 +72,15 @@ def bot_loop(api_key_config):
             buy_quantity = round(buy_quantity, 8)
 
             # 매수 주문 (시장가)
-            log(name, f"매수 시도: {buy_quantity} {coin} (약 {random_buy_krw:,}원)")
+            logger.info(f"매수 시도: {buy_quantity} {coin} (약 {random_buy_krw:,}원)")
             buy_order = bithumb.buy_market_order(coin, buy_quantity)
-            log(name, f"매수 주문 결과: {buy_order}")
+            logger.info(f"매수 주문 결과: {buy_order}")
             if not isinstance(buy_order, tuple) or len(buy_order) != 4 or not buy_order[2]:
                 raise ValueError("매수 주문 접수를 확인하지 못해 이번 사이클을 중단합니다.")
 
             # 3. 매수 후 대기
             wait_time = random.uniform(MIN_WAIT_SEC, MAX_WAIT_SEC)
-            log(name, f"매수 주문 접수. {wait_time/60:.1f}분 후 잔액을 확인합니다...")
+            logger.info(f"매수 주문 접수. {wait_time/60:.1f}분 후 잔액을 확인합니다...")
             time.sleep(wait_time)
 
             # 4. 매도 로직
@@ -97,25 +92,37 @@ def bot_loop(api_key_config):
 
             # 전량 매도 (시장가)
             if available_coin > 0.0001:
-                log(name, f"전량 매도 시도: {available_coin} {coin}")
+                logger.info(f"전량 매도 시도: {available_coin} {coin}")
                 sell_order = bithumb.sell_market_order(coin, available_coin)
-                log(name, f"매도 주문 결과: {sell_order}")
+                logger.info(f"매도 주문 결과: {sell_order}")
                 if not isinstance(sell_order, tuple) or len(sell_order) != 4 or not sell_order[2]:
                     raise ValueError("매도 주문 접수를 확인하지 못했습니다.")
             else:
-                log(name, "매도할 코인이 없습니다.")
+                logger.info("매도할 코인이 없습니다.")
 
             # 5. 매도 후 휴식
             wait_time = random.uniform(MIN_WAIT_SEC, MAX_WAIT_SEC)
-            log(name, f"{wait_time/60:.1f}분 휴식 후 재개합니다.\n")
+            logger.info(f"{wait_time/60:.1f}분 휴식 후 재개합니다.\n")
             time.sleep(wait_time)
 
         except Exception as e:
-            log(name, f"에러 발생: {e}")
-            log(name, traceback.format_exc())
+            logger.exception("에러 발생: %s", e)
             time.sleep(60)
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s] [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        stream=sys.stdout,
+    )
+    if not (
+        all(isinstance(seconds, (int, float)) and math.isfinite(seconds)
+            for seconds in (MIN_WAIT_SEC, MAX_WAIT_SEC))
+        and 0 <= MIN_WAIT_SEC <= MAX_WAIT_SEC <= threading.TIMEOUT_MAX
+    ):
+        raise SystemExit(f"대기 시간은 0 이상, {threading.TIMEOUT_MAX:g}초 이하인 숫자이며 최솟값이 최댓값 이하여야 합니다.")
+
     # API 키 로드
     api_keys = load_api_keys()
 
