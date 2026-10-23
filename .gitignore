@@ -5,5 +5,4 @@ api_keys.json
 __pycache__/
 *.pyc
 
-# Pixi
-.pixi/
+.venv/
