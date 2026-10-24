@@ -1,89 +1,76 @@
-# Bithumb Multi-API Trading Bot (빗썸 다중 API 자동매매)
+# 빗썸 다중 API 자동매매
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![License](https://img.shields.io/badge/License-MIT-green)
+Windows 내장 PowerShell 5.1로 여러 API 계정을 독립적으로 실행하는 자동매매 프로그램입니다. Python·uv·추가 모듈 설치 없이 `run.cmd`로 실행합니다.
 
-빗썸(Bithumb) API를 활용하여 다수의 API Key를 동시에 운용할 수 있는 파이썬 프로젝트입니다.
-`threading` 모듈을 사용하여 각 API Key 별로 독립적인 프로세스를 생성하며, 병렬 처리를 통해 다중 API 요청을 효율적으로 수행합니다.
+빗썸 API 2의 JWT 인증과 `/v2/orders` 주문 규격을 사용합니다. 시장가 매수는 원화 총액으로, 시장가 매도는 사용 가능한 코인 수량으로 요청합니다.
 
-> **⚠️ 주의 (Disclaimer)**
->
-> * **이용 약관 준수**: 본 프로그램은 사용자가 보유한 API Key를 기술적으로 활용하는 도구일 뿐입니다. 거래소의 이용 약관 및 API 사용 정책을 반드시 준수해야 합니다.
-> * **책임 고지**: 본 코드는 API 연동 및 병렬 처리 구조를 예시하기 위한 목적으로 작성되었습니다. 실제 사용으로 인해 발생하는 모든 결과에 대한 책임은 사용자 본인에게 있습니다.
-> * **API 호환성**: 이 프로젝트는 Bithumb API 1.0과 호환됩니다. API 2.0 버전과의 호환성은 장담할 수 없습니다.
+> 실제 자금으로 주문합니다. 매도 시 이번에 매수한 수량뿐 아니라 **기존 보유분까지 포함한 사용 가능 잔액 전량**을 대상으로 합니다. 주문 접수는 체결 완료를 뜻하지 않습니다.
 
-## 🛠 주요 기능 (Features)
+## API 키 설정
 
-* **Multi-Threading Support**: Python의 `threading`을 활용하여 여러 개의 API Key를 동시에 제어합니다.
-* **Interval Management**: 
-    * API 호출 간격을 설정된 범위 내에서 처리합니다.
-    * 각 스레드는 독립적인 대기 시간을 가집니다.
-* **Secure Key Management**: API 키와 시크릿 키를 별도의 JSON 파일로 분리하여 관리합니다.
-* **Log System**: 각 API Key(스레드)별 동작 상태를 실시간으로 출력합니다.
-
-## 📂 파일 구조 (File Structure)
-
-```bash
-├── coin.py                 # 메인 실행 파일
-├── api_keys.json           # [비공개] API 키 저장소
-├── api_keys.sample.json    # API 키 설정 예시
-├── .gitignore              # 보안 설정
-└── README.md               # 프로젝트 설명서
-```
-
-## 🚀 설치 및 설정 (Installation)
-
-### 1. 라이브러리 설치
-이 프로젝트는 `pybithumb` 라이브러리를 사용합니다.
-
-```bash
-pip install pybithumb
-```
-
-### 2. API 키 설정
-`api_keys.sample.json` 파일을 복사하여 `api_keys.json`을 생성하고, 사용할 API 키 정보를 입력합니다.
+1. 빗썸에서 API 2용 키를 준비하고 자산조회·주문조회·주문하기 권한과 사용할 PC의 공인 IP를 등록합니다. 출금 권한은 필요하지 않습니다.
+2. 처음 설정할 때 `api_keys.sample.json`을 복사해 같은 폴더에 `api_keys.json`을 만듭니다. 기존 파일이 있으면 아래 형식에 맞게 수정합니다.
+3. 계정 이름과 발급받은 키를 입력합니다.
 
 ```json
 [
     {
         "name": "API_Key_1",
-        "connect_key": "YOUR_CONNECT_KEY",
-        "secret_key": "YOUR_SECRET_KEY"
-    },
-    {
-        "name": "API_Key_2",
-        "connect_key": "YOUR_CONNECT_KEY",
-        "secret_key": "YOUR_SECRET_KEY"
+        "access_key": "YOUR_API_2_ACCESS_KEY",
+        "secret_key": "YOUR_API_2_SECRET_KEY"
     }
 ]
 ```
 
-## ⚙️ 설정 변경 (Configuration)
-`coin.py` 상단의 상수를 수정하여 파라미터를 조정할 수 있습니다.
+여러 계정은 배열에 항목을 추가합니다. `name`, `access_key`, `secret_key`는 비어 있지 않은 문자열이어야 하며 `access_key`가 중복되면 실행하지 않습니다. 기존 `connect_key` 필드는 사용하지 않습니다.
 
-```python
-# 매수 금액 설정 (KRW)
-MIN_BUY_KRW = 5000
-MAX_BUY_KRW = 20000
+`api_keys.json`은 Git 추적에서 제외됩니다. 실제 키를 예시 파일에 넣거나 공유하지 마세요.
 
-# 대기 시간 설정 (초 단위)
-MIN_WAIT_SEC = 1800
-MAX_WAIT_SEC = 7200
+## 실행
+
+`run.cmd`를 더블클릭하거나 프로젝트 폴더에서 다음 명령을 실행합니다.
+
+```powershell
+.\run.cmd
 ```
 
-## 💻 사용 방법 (Usage)
-터미널에서 아래 명령어로 실행합니다.
+설정 검증 후 실거래 안내가 표시됩니다. **대문자 `Y`를 입력해야** 계정 작업이 시작되며, 다른 입력이나 입력 종료는 실행을 취소합니다. 오류가 발생하면 안내를 표시하고 창을 열어 둡니다.
 
-```bash
-python coin.py
-```
+실행 위치와 관계없이 프로그램 폴더의 키 파일을 사용합니다. `run.cmd`의 실행 정책 설정은 해당 PowerShell 프로세스에만 적용됩니다.
 
-실행 시 등록된 API Key 개수만큼 스레드가 시작됩니다.
+종료는 콘솔에서 `Ctrl+C`로 요청합니다. 종료 시 이 프로그램의 계정 작업을 정리하며, 이미 접수한 주문을 자동 취소하거나 보유 코인을 자동 매도하지 않습니다.
 
-```plaintext
-=== 빗썸 자동매매 봇 시작 (2개 API Key) ===
-대상 코인: KRW-BTC
-...
-[2024-XX-XX 12:00:00] [API_Key_1] 프로세스 시작
-[2024-XX-XX 12:00:05] [API_Key_2] 프로세스 시작
-...
-```
+## 매매 설정과 흐름
+
+`coin.ps1` 상단의 `Invoke-BithumbMain`에 있는 `$Settings` 기본값을 수정합니다.
+
+| 설정 | 기본값 | 의미 |
+|---|---|---|
+| `Market` | `KRW-ETH` | 거래할 원화 마켓 |
+| `MinBuyKrw` / `MaxBuyKrw` | `10000` / `20000` | 무작위 매수 금액 범위. 선택 후 100원 단위로 절삭 |
+| `MinWaitSec` / `MaxWaitSec` | `1800` / `7200` | 매수 후 대기와 매도 후 휴식 범위, 초 단위 |
+| `InsufficientWaitSec` | `300` | 수수료를 포함한 원화 잔액이 부족할 때 대기 |
+| `ReadErrorWaitSec` | `60` | 매수 전 조회 실패 후 재조회 대기 |
+| `MinStaggerSec` / `MaxStaggerSec` | `5` / `20` | 계정 작업 시작 사이의 무작위 간격 |
+| `SellThreshold` | `0.0001` | 사용 가능 코인 수량이 이 값보다 클 때 전량 매도 |
+
+계정별로 다음 과정을 반복합니다.
+
+1. 시장의 최소 주문 금액과 수수료, 사용 가능 원화 잔액을 확인합니다.
+2. 선택한 원화 총액으로 시장가 매수를 요청합니다.
+3. 설정 범위에서 무작위로 대기한 뒤 사용 가능 코인 잔액을 다시 조회합니다.
+4. 매도 기준 수량을 넘으면 사용 가능한 수량 전부로 시장가 매도를 요청합니다. 기준 이하는 매도를 생략합니다.
+5. 설정 범위에서 무작위로 휴식한 뒤 다시 시작합니다.
+
+매수 요청 이후 오류나 확인할 수 없는 주문 응답이 발생하면 **해당 계정을 중지**합니다. 주문을 자동 재전송하지 않으며, 다른 계정은 계속 실행합니다. 로그의 `client_order_id`를 참고해 빗썸 주문 내역을 확인한 뒤 재실행하세요.
+
+## 파일 구성과 검증 범위
+
+- `coin.ps1`: 설정 검증, API 2 인증·요청, 계정별 매매와 작업 정리
+- `run.cmd`: Windows 내장 PowerShell 실행
+- `api_keys.sample.json`: 키 설정 예시
+- `api_keys.json`: 사용자가 준비하는 비공개 키 파일
+
+Windows PowerShell 5.1에서 더미 키와 모의 API로 인증·요청·잔고 계산·계정 병렬 실행·작업 정리·실행 취소를 검증했습니다. 실제 계정 연결·주문 체결과 콘솔의 실제 `Ctrl+C` 입력은 검증하지 않았습니다.
+
+API 규격은 빗썸의 [인증 토큰 생성 안내](https://apidocs.bithumb.com/docs/인증-토큰-생성하기), [주문 요청](https://apidocs.bithumb.com/reference/주문-요청), [키 발급 및 IP 등록 안내](https://apidocs.bithumb.com/docs/빠른-시작-가이드)를 참고하세요.

@@ -1,8 +1,2 @@
-# Secrets
+# 로컬 API 키
 api_keys.json
-
-# Python
-__pycache__/
-*.pyc
-
-.venv/

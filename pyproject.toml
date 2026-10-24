@@ -1,9 +1,0 @@
-[project]
-name = "bithumb-multi-api-trading-bot"
-version = "0.1.0"
-requires-python = ">=3.14.9,<3.15"
-dependencies = ["pybithumb>=1.0.21,<2"]
-
-[tool.uv]
-# 오래된 pybithumb에서 주요 버전 변경을 분리해 검증할 수 있도록 제한합니다.
-constraint-dependencies = ["pandas<3", "python-dateutil<3", "websockets<17"]
